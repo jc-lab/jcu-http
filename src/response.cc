@@ -27,43 +27,50 @@ namespace jcu {
             return prefix + req;
         }
 
-        std::shared_ptr<ResponseFuture> ResponseFuture::create(std::shared_ptr<Client> client, std::unique_ptr<Request> request, CustomHandler *custom_handler) {
-            std::shared_ptr<ResponseFuture> instance(new ResponseFuture(client, std::move(request), custom_handler));
+        std::shared_ptr<ResponseFuture> ResponseFuture::create(RequestPrepare &prepare) {
+            std::shared_ptr<ResponseFuture> instance(new ResponseFuture(prepare));
             instance->self_ = instance;
             instance->thread_ = std::thread(workThreadEntry, instance.get());
             return instance;
         }
 
-        ResponseFuture::ResponseFuture(std::shared_ptr<Client> session, std::unique_ptr<Request> request, CustomHandler *custom_handler)
-        : session_(session),
-        request_(std::move(request)),
-        future_(promise_.get_future()),
-          custom_handler_(custom_handler) {
+        ResponseFuture::ResponseFuture(RequestPrepare &prepare)
+        : info_(std::move(prepare)), state_(STATE_INIT), future_(promise_.get_future()) {
         }
 
         ResponseFuture::~ResponseFuture() {
-            if(thread_.joinable())
-                thread_.join();
+            if(thread_.joinable()) {
+                if(std::this_thread::get_id() == thread_.get_id()) {
+                    thread_.detach();
+                }else {
+                    thread_.join();
+                }
+            }
         }
 
         void ResponseFuture::workThreadEntry(ResponseFuture *self) {
             std::shared_ptr<ResponseFuture> keeper = self->self_;
             ((void)keeper);
-            self->self_ = nullptr;
+            self->self_.reset();
             self->workThreadProc();
+            self->info_.clear();
         }
 
         void ResponseFuture::workThreadProc() {
-            Client::Lock lock(*session_.get());
+            std::shared_ptr<Client> client(info_.getClient());
+            Request *request = info_.getRequest();
+
+            Client::Lock lock(*client.get());
+
             CURL *curl = (CURL*)lock.getCurl();
             long status_code = 0;
 
             void *write_cb_args[] = {this, 0};
 
-            std::string url = resolveUrl(session_->getApiEndpoint(), request_->getUrl());
+            std::string url = resolveUrl(client->getApiEndpoint(), request->getUrl());
 
             curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
-            switch(request_->getMethod()) {
+            switch(request->getMethod()) {
                 case Request::METHOD_POST:
                     curl_easy_setopt(curl, CURLOPT_POST, 1L);
                     break;
@@ -76,6 +83,10 @@ namespace jcu {
             curl_easy_setopt(curl, CURLOPT_WRITEDATA, write_cb_args);
 
             response_.reset(new Response());
+            response_->user_ctx_ = info_.wrapUserContext();
+
+            state_ = STATE_READ_BODY_FIRST;
+            curl_ = curl;
 
             CURLcode res = curl_easy_perform(curl);
             response_->curl_res_ = res;
@@ -99,6 +110,16 @@ namespace jcu {
                 }
             }
 
+            auto done_callback = info_.getOnDoneCallback();
+            if(done_callback) {
+                (*done_callback)(response_.get());
+            }
+
+            auto unique_done_callback = info_.getOnUniqueDoneCallback();
+            if(unique_done_callback) {
+                (*unique_done_callback)(std::move(response_));
+            }
+
             promise_.set_value(std::move(response_));
         }
 
@@ -108,10 +129,21 @@ namespace jcu {
             ResponseFuture *self = (ResponseFuture*)write_cb_args[0];
             Response *response = self->response_.get();
 
-            if(self->custom_handler_) {
-                size_t handled_bytes = 0;
-                if(self->custom_handler_->onData(contents, total_bytes, &handled_bytes)) {
-                    return handled_bytes;
+            RequestPrepare::OnDataFunction *on_data_callback = self->info_.getOnDataCallback();
+
+            if(self->state_ == STATE_READ_BODY_FIRST) {
+                long status_code = 0;
+                curl_easy_getinfo((CURL*)self->curl_, CURLINFO_RESPONSE_CODE, &status_code);
+                response->status_code_ = status_code;
+                response->error_code_ = Response::E_OK;
+                self->state_ = STATE_READ_BODY;
+            }
+
+            if(on_data_callback) {
+                if((*on_data_callback)(contents, total_bytes, response)) {
+                    return total_bytes;
+                }else{
+                    return 0;
                 }
             }
 
@@ -140,6 +172,9 @@ namespace jcu {
         }
         const std::vector<unsigned char> &Response::getRawBody() const {
             return raw_body_;
+        }
+        std::shared_ptr<void> Response::getUserContext() const {
+            return user_ctx_;
         }
 
     }

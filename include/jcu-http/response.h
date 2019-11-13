@@ -15,7 +15,7 @@
 #include <string>
 #include <vector>
 
-#include "custom-handler.h"
+#include "request-prepare.h"
 
 namespace jcu {
     namespace http {
@@ -39,9 +39,12 @@ namespace jcu {
             ErrorCode getErrorCode() const;
             int getCurlRes() const;
             const std::vector<unsigned char> &getRawBody() const;
+            std::shared_ptr<void> getUserContext() const;
 
         private:
             friend class ResponseFuture;
+
+            std::shared_ptr<void> user_ctx_;
 
             int status_code_;
             ErrorCode error_code_;
@@ -52,23 +55,30 @@ namespace jcu {
 
         class ResponseFuture {
         private:
+            enum State {
+                STATE_INIT = 0,
+                STATE_READ_HEAD = 0x0001,
+                STATE_READ_BODY = 0x0002,
+                STATE_READ_BODY_FIRST = 0x0004 | STATE_READ_BODY,
+            };
+
             std::shared_ptr<ResponseFuture> self_;
 
-            CustomHandler *custom_handler_;
+            RequestPrepare info_;
 
             std::thread thread_;
-            std::shared_ptr<Client> session_;
-            std::unique_ptr<Request> request_;
+            State state_;
+            void *curl_;
             std::unique_ptr<Response> response_;
             std::promise<std::unique_ptr<Response>> promise_;
             std::future<std::unique_ptr<Response>> future_;
 
-            ResponseFuture(std::shared_ptr<Client> session, std::unique_ptr<Request> request, CustomHandler *custom_handler);
+            ResponseFuture(RequestPrepare &info);
 
         public:
             ~ResponseFuture();
 
-            static std::shared_ptr<ResponseFuture> create(std::shared_ptr<Client> session, std::unique_ptr<Request> request, CustomHandler *custom_handler);
+            static std::shared_ptr<ResponseFuture> create(RequestPrepare &prepare);
 
             void wait() {
                 future_.wait();

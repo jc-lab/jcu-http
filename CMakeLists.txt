@@ -5,12 +5,13 @@ set(SRC_FILES
         ${CMAKE_CURRENT_SOURCE_DIR}/include/jcu-http/client.h
 		${CMAKE_CURRENT_SOURCE_DIR}/include/jcu-http/request.h
 		${CMAKE_CURRENT_SOURCE_DIR}/include/jcu-http/response.h
-		${CMAKE_CURRENT_SOURCE_DIR}/include/jcu-http/custom-handler.h
+		${CMAKE_CURRENT_SOURCE_DIR}/include/jcu-http/request-prepare.h
 		${CMAKE_CURRENT_SOURCE_DIR}/include/jcu-http/http-get.h
 		${CMAKE_CURRENT_SOURCE_DIR}/include/jcu-http/http-post.h
 		${CMAKE_CURRENT_SOURCE_DIR}/include/jcu-http/ssl-cert.h
 		${CMAKE_CURRENT_SOURCE_DIR}/include/jcu-http/default-cacerts.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/client.cc
+		${CMAKE_CURRENT_SOURCE_DIR}/src/request-prepare.cc
 		${CMAKE_CURRENT_SOURCE_DIR}/src/request.cc
 		${CMAKE_CURRENT_SOURCE_DIR}/src/response.cc
 		${CMAKE_CURRENT_SOURCE_DIR}/src/http-get.cc

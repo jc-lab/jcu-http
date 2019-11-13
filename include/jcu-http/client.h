@@ -15,11 +15,12 @@
 #include <string>
 #include <list>
 
-#include "custom-handler.h"
+#include "request-prepare.h"
 
 namespace jcu {
     namespace http {
 
+        class Client;
         class Request;
         class ResponseFuture;
         class SslCert;
@@ -60,7 +61,7 @@ namespace jcu {
 
             void addTrustCACert(std::shared_ptr<SslCert> cert);
 
-            std::shared_ptr<ResponseFuture> execute(std::unique_ptr<Request> request, CustomHandler *handler = NULL);
+            RequestPrepare prepare(std::shared_ptr<Request> request);
         };
     }
 }

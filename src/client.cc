@@ -56,8 +56,8 @@ namespace jcu {
             trust_ca_certs_.push_back(cert);
         }
 
-        std::shared_ptr<ResponseFuture> Client::execute(std::unique_ptr<Request> request, CustomHandler *handler) {
-            return ResponseFuture::create(self_.lock(), std::move(request), handler);
+        RequestPrepare Client::prepare(std::shared_ptr<Request> request) {
+            return std::move(RequestPrepare(self_.lock(), request));
         }
 
         CURLcode Client::Impl::curlOnSslCtx(CURL *curl, void *psslctx, void *param) {

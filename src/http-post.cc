@@ -12,26 +12,22 @@
 namespace jcu {
     namespace http {
 
-        std::unique_ptr<HttpPost> HttpPost::create(const char *url) {
-            std::unique_ptr<HttpPost> instance(new HttpPost());
+        std::shared_ptr<HttpPost> HttpPost::create(const char *url) {
+            std::shared_ptr<HttpPost> instance(new HttpPost());
             if(url) {
-                instance->setUrl(url);
+                instance->url_ = url;
             }
             return std::move(instance);
         }
 
-        std::unique_ptr<HttpPost> HttpPost::create(const std::string &url) {
-            std::unique_ptr<HttpPost> instance(new HttpPost());
-            instance->setUrl(url);
+        std::shared_ptr<HttpPost> HttpPost::create(const std::string &url) {
+            std::shared_ptr<HttpPost> instance(new HttpPost());
+            instance->url_ = url;
             return std::move(instance);
         }
 
         HttpPost::HttpPost()
             : Request(METHOD_POST) {
-        }
-
-        void HttpPost::setUrl(const std::string& url) {
-            url_ = url;
         }
 
     }

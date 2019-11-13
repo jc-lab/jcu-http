@@ -12,26 +12,22 @@
 namespace jcu {
     namespace http {
 
-        std::unique_ptr<HttpGet> HttpGet::create(const char *url) {
-            std::unique_ptr<HttpGet> instance(new HttpGet());
+        std::shared_ptr<HttpGet> HttpGet::create(const char *url) {
+            std::shared_ptr<HttpGet> instance(new HttpGet());
             if(url) {
-                instance->setUrl(url);
+                instance->url_ = url;
             }
             return std::move(instance);
         }
 
-        std::unique_ptr<HttpGet> HttpGet::create(const std::string &url) {
-            std::unique_ptr<HttpGet> instance(new HttpGet());
-            instance->setUrl(url);
+        std::shared_ptr<HttpGet> HttpGet::create(const std::string &url) {
+            std::shared_ptr<HttpGet> instance(new HttpGet());
+            instance->url_ = url;
             return std::move(instance);
         }
 
         HttpGet::HttpGet()
         : Request(METHOD_GET) {
-        }
-
-        void HttpGet::setUrl(const std::string& url) {
-            url_ = url;
         }
 
     }

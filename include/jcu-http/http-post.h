@@ -21,9 +21,8 @@ namespace jcu {
             HttpPost();
 
         public:
-            static std::unique_ptr<HttpPost> create(const char *url = nullptr);
-            std::unique_ptr<HttpPost> create(const std::string &url);
-            void setUrl(const std::string& url);
+            static std::shared_ptr<HttpPost> create(const char *url = nullptr);
+            std::shared_ptr<HttpPost> create(const std::string &url);
         };
     }
 }

@@ -21,9 +21,8 @@ namespace jcu {
             HttpGet();
 
         public:
-            static std::unique_ptr<HttpGet> create(const char *url = nullptr);
-            static std::unique_ptr<HttpGet> create(const std::string &url);
-            void setUrl(const std::string& url);
+            static std::shared_ptr<HttpGet> create(const char *url = nullptr);
+            static std::shared_ptr<HttpGet> create(const std::string &url);
         };
     }
 }
