@@ -12,7 +12,7 @@
 namespace jcu {
     namespace http {
 
-        Request::Request(Method method)
+        Request::Request(Method method, bool has_data)
         : method_(method)
         {
 
@@ -26,5 +26,26 @@ namespace jcu {
             return url_;
         }
 
+        HttpEntity* Request::getEntity() const {
+            return entity_.get();
+        }
+
+        void Request::clearHeader() {
+            headers_.clear();
+        }
+
+        void Request::addHeader(const char *name, const char *value) {
+            headers_[name].emplace_back(value);
+        }
+
+        void Request::setHeader(const char *name, const char *value) {
+            auto& entry = headers_[name];
+            entry.clear();
+            entry.emplace_back(value);
+        }
+
+        void Request::setHeader(const char *name, const std::list<std::string>& values) {
+            headers_[name] = values;
+        }
     }
 }

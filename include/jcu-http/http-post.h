@@ -17,12 +17,15 @@
 namespace jcu {
     namespace http {
         class HttpPost : public Request {
+
         private:
             HttpPost();
 
         public:
             static std::shared_ptr<HttpPost> create(const char *url = nullptr);
             std::shared_ptr<HttpPost> create(const std::string &url);
+
+            void setEntity(std::shared_ptr<HttpEntity> entity);
         };
     }
 }

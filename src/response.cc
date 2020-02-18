@@ -9,6 +9,7 @@
 
 #include <jcu-http/response.h>
 #include <jcu-http/request.h>
+#include <jcu-http/http-entity.h>
 #include <jcu-http/client.h>
 
 #include <curl/curl.h>
@@ -59,6 +60,7 @@ namespace jcu {
         void ResponseFuture::workThreadProc() {
             std::shared_ptr<Client> client(info_.getClient());
             Request *request = info_.getRequest();
+            struct curl_slist *curl_headers = NULL;
 
             Client::Lock lock(*client.get());
 
@@ -66,6 +68,7 @@ namespace jcu {
             long status_code = 0;
 
             void *write_cb_args[] = {this, 0};
+            void *read_cb_args[] = {this, 0};
 
             std::string url = resolveUrl(client->getApiEndpoint(), request->getUrl());
 
@@ -82,6 +85,29 @@ namespace jcu {
             curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, curlOnWrite);
             curl_easy_setopt(curl, CURLOPT_WRITEDATA, write_cb_args);
 
+            const auto& headers = request->headers();
+            for(auto header_it = headers.cbegin(); header_it != headers.end(); header_it++) {
+                for(auto value_it = header_it->second.cbegin(); value_it != header_it->second.cend(); value_it++) {
+                    std::string header_line = header_it->first;
+                    header_line.append(": ");
+                    header_line.append(*value_it);
+                    curl_headers = curl_slist_append(curl_headers, header_line.c_str());
+                }
+            }
+
+            const HttpEntity* entity = request->getEntity();
+            if(entity) {
+                if(!entity->getContentType().empty()) {
+                    std::string content_type("content-type: ");
+                    content_type.append(entity->getContentType());
+                    curl_headers = curl_slist_append(curl_headers, content_type.c_str());
+                }
+                curl_easy_setopt(curl, CURLOPT_READFUNCTION, curlOnRead);
+                curl_easy_setopt(curl, CURLOPT_READDATA, read_cb_args);
+            }
+
+            curl_easy_setopt(curl, CURLOPT_HTTPHEADER, curl_headers);
+
             response_.reset(new Response());
             response_->user_ctx_ = info_.wrapUserContext();
 
@@ -89,6 +115,8 @@ namespace jcu {
             curl_ = curl;
 
             CURLcode res = curl_easy_perform(curl);
+            curl_slist_free_all(curl_headers);
+
             response_->curl_res_ = res;
             if(response_->operation_error_code_ != Response::E_OK) {
                 response_->error_code_ = response_->operation_error_code_;
@@ -155,6 +183,20 @@ namespace jcu {
             }
 
             return total_bytes;
+        }
+
+        size_t ResponseFuture::curlOnRead(void *contents, size_t size, size_t nmemb, void *userp) {
+            size_t total_bytes = size * nmemb;
+            void **write_cb_args = (void**)userp;
+            ResponseFuture *self = (ResponseFuture*)write_cb_args[0];
+            Request *request = self->info_.getRequest();
+            HttpEntity *entity = request->getEntity();
+
+            if(entity) {
+                return entity->onReadData(contents, total_bytes);
+            }
+
+            return 0;
         }
 
         Response::Response()

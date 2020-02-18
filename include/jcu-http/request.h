@@ -11,11 +11,16 @@
 #define __JCU_HTTP_REQUEST_H__
 
 #include <memory>
+#include <map>
+#include <list>
 
 #include "client.h"
 
 namespace jcu {
     namespace http {
+
+        class HttpEntity;
+
         class Request {
         public:
             enum Method {
@@ -24,14 +29,28 @@ namespace jcu {
                 METHOD_PUT
             };
 
+            typedef std::map<std::string, std::list<std::string>> HeadersType;
+
         protected:
             Method method_;
             std::string url_;
 
+            std::map<std::string, std::list<std::string>> headers_;
+            std::shared_ptr<HttpEntity> entity_;
+
         public:
-            Request(Method method);
+            Request(Method method, bool has_data);
             Method getMethod() const;
-            const std::string& getUrl() const;
+            virtual const std::string& getUrl() const;
+            virtual HttpEntity* getEntity() const;
+            virtual const HeadersType& headers() const {
+                return headers_;
+            }
+
+            virtual void clearHeader();
+            virtual void addHeader(const char *name, const char *value);
+            virtual void setHeader(const char *name, const char *value);
+            virtual void setHeader(const char *name, const std::list<std::string>& values);
         };
     }
 }

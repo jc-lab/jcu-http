@@ -27,7 +27,7 @@ namespace jcu {
         }
 
         HttpGet::HttpGet()
-        : Request(METHOD_GET) {
+        : Request(METHOD_GET, false) {
         }
 
     }

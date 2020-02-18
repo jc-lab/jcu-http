@@ -27,7 +27,11 @@ namespace jcu {
         }
 
         HttpPost::HttpPost()
-            : Request(METHOD_POST) {
+            : Request(METHOD_POST, true) {
+        }
+
+        void HttpPost::setEntity(std::shared_ptr<HttpEntity> entity) {
+            entity_ = entity;
         }
 
     }

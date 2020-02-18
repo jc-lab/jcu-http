@@ -98,6 +98,7 @@ namespace jcu {
             void workThreadProc();
 
             static size_t curlOnWrite(void *contents, size_t size, size_t nmemb, void *userp);
+            static size_t curlOnRead(void *contents, size_t size, size_t nmemb, void *userp);
         };
     }
 }
