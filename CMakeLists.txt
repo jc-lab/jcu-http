@@ -42,7 +42,15 @@ target_include_directories(${LIB_NAME} PUBLIC
   $<INSTALL_INTERFACE:include>)
 
 find_package(CURL REQUIRED)
-target_link_libraries(${LIB_NAME} libcurl)
+if (CURL_LIBRARIES)
+	target_link_libraries(${LIB_NAME} ${CURL_LIBRARIES})
+else()
+	target_link_libraries(${LIB_NAME} CURL::libcurl)
+endif()
 
 find_package(OpenSSL REQUIRED)
-target_link_libraries(${LIB_NAME} OpenSSL::Crypto OpenSSL::SSL)
+if (OPENSSL_LIBRARIES)
+	target_link_libraries(${LIB_NAME} ${OPENSSL_LIBRARIES})
+else()
+	target_link_libraries(${LIB_NAME} OpenSSL::Crypto OpenSSL::SSL)
+endif()
