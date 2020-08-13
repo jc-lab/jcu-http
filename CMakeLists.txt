@@ -1,7 +1,7 @@
 cmake_minimum_required (VERSION 2.8)
 project(jcu-http CXX)
 
-set(LIB_NAME jcu-http)
+set(LIB_NAME jcu_http)
 
 option(JCU_HTTP_BUILD_SHARED_LIBS "jcu-http Build shared libraries" ON)
 
